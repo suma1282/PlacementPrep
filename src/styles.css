@@ -4,6 +4,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@source inline("bg-aptitude bg-dsa bg-sql bg-react bg-backend bg-projects");
+
 /*
  * PlacementPrep design system — "Frosted Ledger".
  * Calm frosted surfaces on a cool canvas, Inter + JetBrains Mono,
