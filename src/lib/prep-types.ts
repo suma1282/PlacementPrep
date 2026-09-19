@@ -31,7 +31,7 @@ export interface Task {
   minutes: number;
   dueDate: string;
   status: Status;
-  today?: boolean;
+  today?: boolean | undefined;
 }
 
 export interface Resource {
