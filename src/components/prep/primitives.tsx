@@ -65,7 +65,11 @@ export function StatCard({
         {suffix ? <span className="text-sm font-semibold text-muted"> {suffix}</span> : null}
       </p>
       {typeof percent === "number" ? (
-        <ProgressBar percent={percent} category={barCategory} className="mt-2" />
+        <ProgressBar
+          percent={percent}
+          {...(barCategory ? { category: barCategory } : {})}
+          className="mt-2"
+        />
       ) : note ? (
         <p className="mt-2 font-mono text-[11px] text-muted">{note}</p>
       ) : null}
