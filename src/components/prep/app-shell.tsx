@@ -1,11 +1,12 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { useAuth } from "@/lib/auth";
 import { placementWindowDays } from "@/lib/prep-data";
 import { usePrep } from "@/lib/prep-store";
 import { cn } from "@/lib/utils";
 
-import { ProgressBar } from "./primitives";
+import { ActionButton, ProgressBar } from "./primitives";
 
 const NAV = [
   { to: "/", label: "Home", glyph: "☰" },
@@ -52,6 +53,9 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { profile, stats } = usePrep();
   const initials = profile.name
     .split(" ")
@@ -59,6 +63,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const onSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    setSigningOut(false);
+    void navigate({ to: "/login" });
+  };
 
   return (
     <div className="min-h-screen w-full bg-canvas text-ink">
@@ -90,20 +101,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="mt-1 text-sm font-semibold">Opens in {placementWindowDays} days</p>
               <ProgressBar percent={stats.overallPercent} className="mt-2" label="Overall progress" />
             </div>
-            <Link
-              to="/profile"
-              className="mt-4 flex items-center gap-2.5 rounded-xl px-1 py-1 hover:bg-surface/70"
-            >
-              <span className="grid size-8 place-items-center rounded-full bg-projects/15 text-xs font-bold text-projects">
-                {initials}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{profile.name}</span>
-                <span className="block truncate font-mono text-[10px] text-muted">
-                  {profile.branch.split(" ")[0]} · {profile.graduationYear}
-                </span>
-              </span>
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="mt-4 flex items-center gap-2.5 rounded-xl px-1 py-1 hover:bg-surface/70"
+                >
+                  <span className="grid size-8 place-items-center rounded-full bg-projects/15 text-xs font-bold text-projects">
+                    {initials || "P"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">
+                      {profile.name || "Your profile"}
+                    </span>
+                    <span className="block truncate font-mono text-[10px] text-muted">
+                      {(profile.branch.split(" ")[0] || "Prep") +
+                        (profile.graduationYear ? ` · ${profile.graduationYear}` : "")}
+                    </span>
+                  </span>
+                </Link>
+                <ActionButton
+                  variant="quiet"
+                  className="mt-3 w-full"
+                  disabled={signingOut}
+                  onClick={() => void onSignOut()}
+                >
+                  {signingOut ? "Signing out…" : "Log out"}
+                </ActionButton>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="mt-4 block rounded-xl bg-accent px-4 py-2 text-center text-sm font-semibold text-accent-foreground"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </aside>
 
@@ -123,6 +156,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className={cn("frost-card mt-3 rounded-2xl p-3", !open && "hidden")}>
               <NavLinks onNavigate={() => setOpen(false)} />
+              {user ? (
+                <ActionButton
+                  variant="quiet"
+                  className="mt-3 w-full"
+                  disabled={signingOut}
+                  onClick={() => void onSignOut()}
+                >
+                  {signingOut ? "Signing out…" : "Log out"}
+                </ActionButton>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 block rounded-xl bg-accent px-4 py-2 text-center text-sm font-semibold text-accent-foreground"
+                >
+                  Sign in
+                </Link>
+              )}
             </div>
           </div>
 

@@ -182,12 +182,14 @@ export function ActionButton({
   variant = "primary",
   type = "button",
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: "primary" | "quiet" | "danger";
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   const tone =
     variant === "primary"
@@ -199,9 +201,11 @@ export function ActionButton({
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "rounded-xl px-4 py-2 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         tone,
+        disabled && "pointer-events-none opacity-60 hover:translate-y-0",
         className,
       )}
     >

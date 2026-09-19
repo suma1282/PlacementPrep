@@ -1,9 +1,11 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { supabase } from "@/integrations/supabase/client";
+
+import { mapProfileRow, useAuth } from "./auth";
 import {
   bestStreak,
   currentStreak,
-  initialProfile,
   initialResources,
   initialTasks,
   initialTopics,
@@ -12,6 +14,15 @@ import {
   weeklyMinutes,
 } from "./prep-data";
 import { CATEGORIES, type Category, type Profile, type Status, type Task, type Topic } from "./prep-types";
+
+const emptyProfile: Profile = {
+  name: "",
+  college: "",
+  branch: "",
+  graduationYear: "",
+  targetRole: "",
+  skills: [],
+};
 
 export type TaskDraft = Omit<Task, "id">;
 
@@ -60,10 +71,33 @@ const nextStatus = (status: Status): Status =>
   status === "Not Started" ? "In Progress" : status === "In Progress" ? "Completed" : "Not Started";
 
 export function PrepProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [topics, setTopics] = useState<Topic[]>(initialTopics);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [resources] = useState(initialResources);
-  const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [profile, setProfile] = useState<Profile>(emptyProfile);
+
+  useEffect(() => {
+    if (!user) {
+      setProfile(emptyProfile);
+      return;
+    }
+
+    let cancelled = false;
+    void supabase
+      .from("profiles")
+      .select("full_name, college, branch, graduation_year, target_role, skills")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setProfile(mapProfileRow(data));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const value = useMemo<PrepValue>(() => {
     const topicsCompleted = topics.filter((t) => t.status === "Completed").length;
@@ -113,7 +147,21 @@ export function PrepProvider({ children }: { children: ReactNode }) {
         setTopics((prev) =>
           prev.map((t) => (t.id === id ? { ...t, status: nextStatus(t.status) } : t)),
         ),
-      updateProfile: setProfile,
+      updateProfile: (next) => {
+        setProfile(next);
+        if (!user) return;
+        void supabase
+          .from("profiles")
+          .update({
+            full_name: next.name,
+            college: next.college,
+            branch: next.branch,
+            graduation_year: next.graduationYear,
+            target_role: next.targetRole,
+            skills: next.skills,
+          })
+          .eq("id", user.id);
+      },
       stats: {
         overallPercent,
         tasksCompleted,
@@ -134,7 +182,7 @@ export function PrepProvider({ children }: { children: ReactNode }) {
       weeklyMinutes,
       recentActivity,
     };
-  }, [topics, tasks, resources, profile]);
+  }, [topics, tasks, resources, profile, user]);
 
   return <PrepContext.Provider value={value}>{children}</PrepContext.Provider>;
 }
