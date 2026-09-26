@@ -16,42 +16,185 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
-          id: string
-          full_name: string
-          college: string | null
-          branch: string | null
-          graduation_year: string | null
-          target_role: string | null
-          skills: string[] | null
           avatar_url: string | null
+          branch: string | null
+          college: string | null
           created_at: string
+          full_name: string | null
+          graduation_year: number | null
+          id: string
+          skills: string[]
+          target_role: string | null
           updated_at: string
         }
         Insert: {
-          id: string
-          full_name: string
-          college?: string | null
-          branch?: string | null
-          graduation_year?: string | null
-          target_role?: string | null
-          skills?: string[] | null
           avatar_url?: string | null
+          branch?: string | null
+          college?: string | null
           created_at?: string
+          full_name?: string | null
+          graduation_year?: number | null
+          id: string
+          skills?: string[]
+          target_role?: string | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          full_name?: string
-          college?: string | null
-          branch?: string | null
-          graduation_year?: string | null
-          target_role?: string | null
-          skills?: string[] | null
           avatar_url?: string | null
+          branch?: string | null
+          college?: string | null
           created_at?: string
+          full_name?: string | null
+          graduation_year?: number | null
+          id?: string
+          skills?: string[]
+          target_role?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      resources: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          difficulty: string | null
+          id: string
+          resource_type: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          resource_type: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          resource_type?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      roadmap_topics: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          estimated_minutes: number | null
+          id: string
+          priority: string
+          topic_name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          estimated_minutes?: number | null
+          id?: string
+          priority?: string
+          topic_name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          estimated_minutes?: number | null
+          id?: string
+          priority?: string
+          topic_name?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          category: string
+          created_at: string
+          due_date: string | null
+          estimated_minutes: number | null
+          id: string
+          priority: string
+          status: string
+          title: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      topic_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          id: string
+          roadmap_topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          roadmap_topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          roadmap_topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_progress_roadmap_topic_id_fkey"
+            columns: ["roadmap_topic_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

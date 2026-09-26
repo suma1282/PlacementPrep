@@ -2,10 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
-  Navigate,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -14,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/prep/app-shell";
-import { AuthProvider, useAuth } from "../lib/auth";
 import { PrepProvider } from "../lib/prep-store";
 
 function NotFoundComponent() {
@@ -129,58 +126,17 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-const AUTH_PATHS = new Set(["/login", "/register"]);
-const PUBLIC_PATHS = new Set(["/", "/login", "/register"]);
-
-function normalizePath(pathname: string) {
-  if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
-  return pathname || "/";
-}
-
-function AuthGate({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
-  const pathname = normalizePath(useRouterState({ select: (s) => s.location.pathname }));
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas px-4 text-ink">
-        <p className="font-mono text-sm text-muted">Checking session…</p>
-      </div>
-    );
-  }
-
-  if (!user && !PUBLIC_PATHS.has(pathname)) {
-    return <Navigate to="/login" />;
-  }
-
-  if (user && AUTH_PATHS.has(pathname)) {
-    return <Navigate to="/dashboard" />;
-  }
-
-  return children;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const pathname = normalizePath(useRouterState({ select: (s) => s.location.pathname }));
-  const isAuthPage = AUTH_PATHS.has(pathname);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <PrepProvider>
-          <AuthGate>
-            {isAuthPage ? (
-              <Outlet />
-            ) : (
-              <AppShell>
-                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                <Outlet />
-              </AppShell>
-            )}
-          </AuthGate>
-        </PrepProvider>
-      </AuthProvider>
+      <PrepProvider>
+        <AppShell>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </AppShell>
+      </PrepProvider>
     </QueryClientProvider>
   );
 }

@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { TaskCard } from "@/components/prep/cards";
 import { ActionButton, EmptyState, Panel, PanelHeader, SearchBar, Select } from "@/components/prep/primitives";
 import { TaskFormModal } from "@/components/prep/task-form";
-import { usePrep, type TaskDraft } from "@/lib/prep-store";
-import { CATEGORIES, PRIORITIES, STATUSES, type Task } from "@/lib/prep-types";
+import type { TaskDraft } from "@/lib/prep-store";
+import { CATEGORIES, PRIORITIES, STATUSES, type Status, type Task } from "@/lib/prep-types";
+import { deleteTaskRow, fetchTasks, getUserId, insertTask, updateTaskRow } from "@/lib/tasks-db";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -32,7 +33,10 @@ const SORTS = ["Priority", "Due date", "Estimated time"] as const;
 const priorityRank = { High: 0, Medium: 1, Low: 2 } as const;
 
 function Tasks() {
-  const { tasks, addTask, updateTask, deleteTask, setTaskStatus, toggleTaskComplete } = usePrep();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [status, setStatus] = useState("All");
@@ -40,6 +44,48 @@ function Tasks() {
   const [sort, setSort] = useState<string>("Priority");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const uid = await getUserId();
+      setUserId(uid);
+      setTasks(uid ? await fetchTasks(uid) : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load tasks.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const run = async (fn: (uid: string) => Promise<void>) => {
+    if (!userId) {
+      setError("Please sign in to save tasks.");
+      return;
+    }
+    setError(null);
+    try {
+      await fn(userId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong saving your task.");
+    }
+  };
+
+  const replace = (t: Task) => setTasks((prev) => prev.map((x) => (x.id === t.id ? t : x)));
+  const setTaskStatus = (id: string, s: Status) =>
+    run(async (uid) => replace(await updateTaskRow(uid, id, { status: s })));
+  const toggleTaskComplete = (task: Task) =>
+    setTaskStatus(task.id, task.status === "Completed" ? "Not Started" : "Completed");
+  const deleteTask = (id: string) =>
+    run(async (uid) => {
+      await deleteTaskRow(uid, id);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    });
 
   const visible = useMemo(() => {
     const list = tasks.filter(
@@ -56,12 +102,16 @@ function Tasks() {
     });
   }, [tasks, category, status, priority, query, sort]);
 
-  const submit = (draft: TaskDraft) => {
-    if (editing) updateTask(editing.id, { ...draft, today: editing.today });
-    else addTask(draft);
-    setOpen(false);
-    setEditing(null);
-  };
+  const submit = (draft: TaskDraft) =>
+    run(async (uid) => {
+      if (editing) replace(await updateTaskRow(uid, editing.id, draft));
+      else {
+        const created = await insertTask(uid, draft);
+        setTasks((prev) => [created, ...prev]);
+      }
+      setOpen(false);
+      setEditing(null);
+    });
 
   return (
     <>
@@ -96,19 +146,38 @@ function Tasks() {
 
       <Panel delay={100}>
         <PanelHeader title="All tasks" meta={`${visible.length} shown`} />
-        {visible.length ? (
+        {error ? (
+          <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/70 p-4 text-sm">
+            <span>{error}</span>
+            <ActionButton variant="quiet" onClick={() => void load()}>
+              Retry
+            </ActionButton>
+          </div>
+        ) : null}
+        {loading ? (
+          <p className="mt-4 text-sm text-muted" aria-live="polite">
+            Loading your tasks…
+          </p>
+        ) : !userId ? (
+          <div className="mt-4">
+            <EmptyState
+              title="Sign in required"
+              description="Sign in to load and save your personal tasks."
+            />
+          </div>
+        ) : visible.length ? (
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {visible.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
-                onToggle={() => toggleTaskComplete(task.id)}
-                onStatus={(s) => setTaskStatus(task.id, s)}
+                onToggle={() => void toggleTaskComplete(task)}
+                onStatus={(s) => void setTaskStatus(task.id, s)}
                 onEdit={() => {
                   setEditing(task);
                   setOpen(true);
                 }}
-                onDelete={() => deleteTask(task.id)}
+                onDelete={() => void deleteTask(task.id)}
               />
             ))}
           </div>

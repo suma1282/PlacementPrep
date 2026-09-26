@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { MetaBadge } from "@/components/prep/badges";
 import { ActionButton, Field, inputClass, Panel, PanelHeader } from "@/components/prep/primitives";
@@ -32,12 +32,6 @@ function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Profile>(profile);
   const [skillsText, setSkillsText] = useState(profile.skills.join(", "));
-
-  useEffect(() => {
-    if (editing) return;
-    setDraft(profile);
-    setSkillsText(profile.skills.join(", "));
-  }, [profile, editing]);
 
   const startEdit = () => {
     setDraft(profile);
